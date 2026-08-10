@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"netsim_0/internal/api"
+	"netsim_0/internal/store"
 )
 
 type HealthResponse struct {
@@ -32,8 +33,12 @@ func h_healthHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func main() {
+type netsim struct {
+	Server http.Server
+	Store  store.MemoryStore
+}
 
+func makeServer() http.Server {
 	mux := http.NewServeMux()
 
 	// server banter
@@ -46,9 +51,22 @@ func main() {
 	mux.HandleFunc("GET 	/api/v1/topologies/{topoId}", api.GetTopology)
 	mux.HandleFunc("DELETE 	/api/v1/topologies/{topoId}", api.DeleteTopology)
 
+	return http.Server{
+		Addr:    ":8080",
+		Handler: mux,
+	}
+}
+
+func main() {
+
+	ns := netsim{
+		Server: makeServer(),
+		Store:  store.MakeStore(),
+	}
+
 	log.Println("server listening on http://localhost:8080")
 
-	err := http.ListenAndServe(":8080", mux)
+	err := ns.Server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}

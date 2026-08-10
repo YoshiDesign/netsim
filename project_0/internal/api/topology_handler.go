@@ -12,7 +12,7 @@ import (
 var Topologies = make(map[string]topology.Topology)
 var nextTopologyID = 1
 
-func GetTopology(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetTopology(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("topoId")
 	if id == "" {
@@ -47,7 +47,7 @@ func GetTopology(w http.ResponseWriter, r *http.Request) {
 }
 
 // Display all topologies
-func GetTopologies(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetTopologies(w http.ResponseWriter, r *http.Request) {
 
 	result := make([]topology.Topology, 0, len(Topologies))
 
@@ -62,7 +62,7 @@ func GetTopologies(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func CreateTopology(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateTopology(w http.ResponseWriter, r *http.Request) {
 	var req topology.CreateTopologyRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -114,7 +114,7 @@ func CreateTopology(w http.ResponseWriter, r *http.Request) {
 	// Done
 }
 
-func DeleteTopology(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteTopology(w http.ResponseWriter, r *http.Request) {
 	topoId := r.PathValue("topoId")
 
 	if topoId == "" {
