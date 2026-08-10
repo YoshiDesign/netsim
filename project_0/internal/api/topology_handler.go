@@ -29,7 +29,7 @@ func GetTopology(w http.ResponseWriter, r *http.Request) {
 	// Get from global memory
 	topo, exists := Topologies[id]
 	if !exists {
-		// 400
+		// 404
 		http.Error(
 			w,
 			"not found",
@@ -129,7 +129,7 @@ func DeleteTopology(w http.ResponseWriter, r *http.Request) {
 
 	_, exists := Topologies[topoId]
 	if !exists {
-		// 400
+		// 404
 		http.Error(
 			w,
 			"error: missing id",
