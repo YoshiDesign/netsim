@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"netsim_0/internal/topology"
@@ -12,11 +11,14 @@ import (
 var Topologies = make(map[string]topology.Topology)
 var nextTopologyID = 1
 
+/*
+*
+ */
 func (h *Handler) GetTopology(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("topoId")
 	if id == "" {
-		// 400 - could alternatively drop the request silently. Design/security detail
+		// 400 - This check is optional. Just being explicit
 		http.Error(
 			w,
 			"invalid request",
@@ -26,8 +28,9 @@ func (h *Handler) GetTopology(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get from global memory
-	topo, exists := Topologies[id]
+	// RLOCK
+	topo, exists := h.Store.GetTopology(id)
+	// RLOCK
 	if !exists {
 		// 404
 		http.Error(
@@ -46,14 +49,14 @@ func (h *Handler) GetTopology(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// Display all topologies
+/*
+* Display all topologies
+ */
 func (h *Handler) GetTopologies(w http.ResponseWriter, r *http.Request) {
 
-	result := make([]topology.Topology, 0, len(Topologies))
-
-	for _, topo := range Topologies {
-		result = append(result, topo)
-	}
+	// Read-Lock
+	result := h.Store.ListTopologies()
+	// Read-Lock
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -62,6 +65,9 @@ func (h *Handler) GetTopologies(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+/*
+*
+ */
 func (h *Handler) CreateTopology(w http.ResponseWriter, r *http.Request) {
 	var req topology.CreateTopologyRequest
 
@@ -87,17 +93,9 @@ func (h *Handler) CreateTopology(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := fmt.Sprintf("topology-%d", nextTopologyID)
-	nextTopologyID++
-
-	// DTO
-	topology := topology.Topology{
-		ID:   id,
-		Name: req.Name,
-	}
-
-	// "Register" the new topology
-	Topologies[id] = topology
+	// Critical section
+	topology := h.Store.CreateTopology(req.Name)
+	// Critical section
 
 	/*
 	* HTTP/1.1 201 Created
@@ -114,6 +112,9 @@ func (h *Handler) CreateTopology(w http.ResponseWriter, r *http.Request) {
 	// Done
 }
 
+/*
+*
+ */
 func (h *Handler) DeleteTopology(w http.ResponseWriter, r *http.Request) {
 	topoId := r.PathValue("topoId")
 
@@ -127,23 +128,14 @@ func (h *Handler) DeleteTopology(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, exists := Topologies[topoId]
-	if !exists {
-		// 404
-		http.Error(
-			w,
-			"error: missing id",
-			http.StatusNotFound,
-		)
-		return
-	}
-
-	delete(Topologies, topoId)
+	// Critical Section
+	h.Store.DeleteTopology(topoId)
+	// Critical Section
 
 	// Success - We'll return a 204 No Content response
 	w.WriteHeader(http.StatusNoContent)
 
-	// That's all that's necessary. The header will be written
+	// ^That's all that's necessary. The header will be written
 	// as part of the inevitable HTTP response.
 	// We do not need to encode a reply manually
 	// unless there's a specific need.

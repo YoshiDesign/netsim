@@ -35,21 +35,24 @@ func h_healthHandler(w http.ResponseWriter, r *http.Request) {
 
 type netsim struct {
 	Server http.Server
-	Store  store.MemoryStore
+	Store  *store.MemoryStore
 }
 
-func makeServer() http.Server {
+func makeServer(s *store.MemoryStore) http.Server {
 	mux := http.NewServeMux()
+
+	// Dependency injected handler
+	apiHandler := api.NewHandler(s)
 
 	// server banter
 	mux.HandleFunc("GET /health", h_healthHandler)
 	mux.HandleFunc("GET /hello", h_helloHandler)
 
 	// API
-	mux.HandleFunc("GET 	/api/v1/topologies", api.GetTopologies)
-	mux.HandleFunc("POST 	/api/v1/topologies", api.CreateTopology)
-	mux.HandleFunc("GET 	/api/v1/topologies/{topoId}", api.GetTopology)
-	mux.HandleFunc("DELETE 	/api/v1/topologies/{topoId}", api.DeleteTopology)
+	mux.HandleFunc("GET /api/v1/topologies", apiHandler.GetTopologies)
+	mux.HandleFunc("POST /api/v1/topologies", apiHandler.CreateTopology)
+	mux.HandleFunc("GET /api/v1/topologies/{topoId}", apiHandler.GetTopology)
+	mux.HandleFunc("DELETE /api/v1/topologies/{topoId}", apiHandler.DeleteTopology)
 
 	return http.Server{
 		Addr:    ":8080",
@@ -59,9 +62,11 @@ func makeServer() http.Server {
 
 func main() {
 
+	s := store.MakeStore()
+
 	ns := netsim{
-		Server: makeServer(),
-		Store:  store.MakeStore(),
+		Store:  s,
+		Server: makeServer(s),
 	}
 
 	log.Println("server listening on http://localhost:8080")
