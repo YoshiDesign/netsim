@@ -50,9 +50,8 @@ The application simulates its domain in-memory in order to focus on fundamental 
 - Interface must be UP
 
 **Project_0 TODO's and Omissions:**
-- Synchronization + Backpressure for concurrent design
 - Storage infra (mysql, redis, etc.)
-- Request Validation
+- Request Authorization
 - Cancellation
 - Operation IDs
 - Timeouts
