@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"netsim_0/internal/api"
 	"netsim_0/internal/store"
+	"netsim_0/internal/topology"
 )
 
 type HealthResponse struct {
@@ -35,10 +36,9 @@ func h_healthHandler(w http.ResponseWriter, r *http.Request) {
 
 type netsim struct {
 	Server http.Server
-	Store  *store.MemoryStore
 }
 
-func makeServer(s *store.MemoryStore) http.Server {
+func makeServer(s *store.MemoryStore, ts *topology.TopologyService) http.Server {
 	mux := http.NewServeMux()
 
 	// Dependency injected handler
@@ -62,11 +62,12 @@ func makeServer(s *store.MemoryStore) http.Server {
 
 func main() {
 
+	// Dep's
 	s := store.MakeStore()
+	topologyService := topology.NewTopologyService(s)
 
 	ns := netsim{
-		Store:  s,
-		Server: makeServer(s),
+		Server: makeServer(s, topologyService),
 	}
 
 	log.Println("server listening on http://localhost:8080")

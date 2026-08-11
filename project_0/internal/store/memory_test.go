@@ -19,6 +19,7 @@ func TestMemoryStoreConcurrentCreate(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(workers)
 
+	// Part 1 - race check
 	for i := range workers {
 		go func(id int) {
 			defer wg.Done()
@@ -38,5 +39,16 @@ func TestMemoryStoreConcurrentCreate(t *testing.T) {
 			workers,
 			len(topologies),
 		)
+	}
+
+	// Part 2 - make sure every id is unique
+	ids := make(map[string]struct{}) // a common Go "set-like" idioms. struct{} consumes no meaningful storage. Points to the zero sentinel
+
+	for _, topology := range topologies {
+		if _, exists := ids[topology.ID]; exists {
+			t.Fatalf("duplicate topology ID: %s", topology.ID)
+		}
+
+		ids[topology.ID] = struct{}{}
 	}
 }
