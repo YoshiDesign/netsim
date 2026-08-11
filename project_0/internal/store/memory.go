@@ -9,10 +9,13 @@ import (
 /*
 * Note: Memory store will eventually become an interface
 * as we will eventually work with multiple different stores
+*
+* Invariant: Critical access happens while holding the correct lock
  */
 type MemoryStore struct {
 	mu sync.RWMutex
 
+	// locked by mu^
 	topologies map[string]topology.Topology
 	nextID     uint64
 }
