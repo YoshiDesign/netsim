@@ -1,16 +1,18 @@
 package api
 
-import "netsim_0/internal/store"
+import (
+	"netsim_0/internal/topology"
+)
 
 type Handler struct {
-	Store *store.MemoryStore
+	topologies *topology.TopologyService
 }
 
 // Note: Memory store will eventually become an interface
 // as we eventually will work with multiple different stores
 
-func NewHandler(s *store.MemoryStore) *Handler {
+func NewHandler(ts *topology.TopologyService) *Handler {
 	return &Handler{
-		Store: s,
+		topologies: ts,
 	}
 }

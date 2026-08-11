@@ -1,7 +1,8 @@
-package store
+package tests
 
 import (
 	"fmt"
+	"netsim_0/internal/store"
 	"sync"
 	"testing"
 )
@@ -12,7 +13,7 @@ import (
  */
 
 func TestMemoryStoreConcurrentCreate(t *testing.T) {
-	store := MakeStore()
+	store := store.MakeStore()
 
 	const workers = 100
 

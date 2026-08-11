@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"netsim_0/internal/topology"
@@ -14,7 +15,7 @@ var nextTopologyID = 1
 /*
 *
  */
-func (h *Handler) GetTopology(w http.ResponseWriter, r *http.Request) {
+func (api *Handler) GetTopology(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("topoId")
 	if id == "" {
@@ -29,16 +30,27 @@ func (h *Handler) GetTopology(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// RLOCK
-	topo, exists := h.Store.GetTopology(id)
+	topo, err := api.topologies.GetTopology(id)
 	// RLOCK
-	if !exists {
+	if err != nil {
+
 		// 404
+		if errors.Is(err, topology.ErrTopologyNotFound) {
+			// 404
+			http.Error(
+				w,
+				"not found",
+				http.StatusNotFound,
+			)
+			return
+		}
+
+		// 500
 		http.Error(
 			w,
-			"not found",
-			http.StatusNotFound,
+			"internal server error",
+			http.StatusInternalServerError,
 		)
-
 		return
 	}
 
@@ -52,10 +64,10 @@ func (h *Handler) GetTopology(w http.ResponseWriter, r *http.Request) {
 /*
 * Display all topologies
  */
-func (h *Handler) GetTopologies(w http.ResponseWriter, r *http.Request) {
+func (api *Handler) GetTopologies(w http.ResponseWriter, r *http.Request) {
 
 	// Read-Lock
-	result := h.Store.ListTopologies()
+	result := api.topologies.ListTopologies()
 	// Read-Lock
 
 	w.Header().Set("Content-Type", "application/json")
@@ -68,7 +80,7 @@ func (h *Handler) GetTopologies(w http.ResponseWriter, r *http.Request) {
 /*
 *
  */
-func (h *Handler) CreateTopology(w http.ResponseWriter, r *http.Request) {
+func (api *Handler) CreateTopology(w http.ResponseWriter, r *http.Request) {
 	var req topology.CreateTopologyRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -94,8 +106,26 @@ func (h *Handler) CreateTopology(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Critical section
-	topology := h.Store.CreateTopology(req.Name)
+	new_topology, err := api.topologies.CreateTopology(req.Name)
 	// Critical section
+
+	if err != nil {
+		if errors.Is(err, topology.ErrTopologyNameRequired) {
+			http.Error(
+				w,
+				err.Error(),
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		http.Error(
+			w,
+			"internal server error",
+			http.StatusInternalServerError,
+		)
+		return
+	}
 
 	/*
 	* HTTP/1.1 201 Created
@@ -105,7 +135,7 @@ func (h *Handler) CreateTopology(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	// serialize
-	if err := json.NewEncoder(w).Encode(topology); err != nil {
+	if err := json.NewEncoder(w).Encode(new_topology); err != nil {
 		log.Printf("failed to encode topology: %v", err)
 	}
 
@@ -115,7 +145,7 @@ func (h *Handler) CreateTopology(w http.ResponseWriter, r *http.Request) {
 /*
 *
  */
-func (h *Handler) DeleteTopology(w http.ResponseWriter, r *http.Request) {
+func (api *Handler) DeleteTopology(w http.ResponseWriter, r *http.Request) {
 	topoId := r.PathValue("topoId")
 
 	if topoId == "" {
@@ -129,8 +159,28 @@ func (h *Handler) DeleteTopology(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Critical Section
-	h.Store.DeleteTopology(topoId)
+	err := api.topologies.DeleteTopology(topoId)
 	// Critical Section
+
+	if err != nil {
+		// 404 - Not very info-sec friendly, just being explicit/transparent for project-0
+		if errors.Is(err, topology.ErrTopologyIdNotFound) {
+			http.Error(
+				w,
+				err.Error(),
+				http.StatusNotFound,
+			)
+			return
+		}
+
+		// 500
+		http.Error(
+			w,
+			"internal server error",
+			http.StatusInternalServerError,
+		)
+		return
+	}
 
 	// Success - We'll return a 204 No Content response
 	w.WriteHeader(http.StatusNoContent)

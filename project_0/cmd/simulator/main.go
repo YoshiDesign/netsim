@@ -38,11 +38,11 @@ type netsim struct {
 	Server http.Server
 }
 
-func makeServer(s *store.MemoryStore, ts *topology.TopologyService) http.Server {
+func makeServer(ts *topology.TopologyService) http.Server {
 	mux := http.NewServeMux()
 
 	// Dependency injected handler
-	apiHandler := api.NewHandler(s)
+	apiHandler := api.NewHandler(ts)
 
 	// server banter
 	mux.HandleFunc("GET /health", h_healthHandler)
@@ -64,10 +64,10 @@ func main() {
 
 	// Dep's
 	s := store.MakeStore()
-	topologyService := topology.NewTopologyService(s)
+	topologyService := topology.NewTopologyService(s) // inject memory store
 
 	ns := netsim{
-		Server: makeServer(s, topologyService),
+		Server: makeServer(topologyService), // inject topology service
 	}
 
 	log.Println("server listening on http://localhost:8080")

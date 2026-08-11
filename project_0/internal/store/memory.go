@@ -7,7 +7,9 @@ import (
 )
 
 /*
-* Note: Memory store will eventually become an interface
+* The repository layer.
+*
+* Note: Memory store satisfies a documented interface
 * as we will eventually work with multiple different stores
 *
 * Invariant: Critical access happens while holding the correct lock
