@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"netsim_0/internal/api"
@@ -12,12 +11,6 @@ import (
 
 type HealthResponse struct {
 	Status string `json:"status"`
-}
-
-func h_helloHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "hello from simulation")
-
 }
 
 func h_healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -46,13 +39,18 @@ func makeServer(ts *topology.TopologyService) http.Server {
 
 	// server banter
 	mux.HandleFunc("GET /health", h_healthHandler)
-	mux.HandleFunc("GET /hello", h_helloHandler)
 
-	// API
+	// API - Topologies
 	mux.HandleFunc("GET /api/v1/topologies", apiHandler.GetTopologies)
 	mux.HandleFunc("POST /api/v1/topologies", apiHandler.CreateTopology)
 	mux.HandleFunc("GET /api/v1/topologies/{topoId}", apiHandler.GetTopology)
 	mux.HandleFunc("DELETE /api/v1/topologies/{topoId}", apiHandler.DeleteTopology)
+
+	// API - Nodes
+	mux.HandleFunc("GET /api/v1/topologies/{topoId}/nodes", apiHandler.GetNodes)
+	mux.HandleFunc("POST /api/v1/topologies/{topoId}/nodes", apiHandler.CreateNode)
+	mux.HandleFunc("GET /api/v1/topologies/{topoId}/nodes/{nodeId}", apiHandler.GetNode)
+	mux.HandleFunc("DELETE /api/v1/topologies/{topoId}/nodes/{nodeId}", apiHandler.DeleteNode)
 
 	return http.Server{
 		Addr:    ":8080",
@@ -63,9 +61,22 @@ func makeServer(ts *topology.TopologyService) http.Server {
 func main() {
 
 	// Dep's
-	s := store.MakeStore()
-	topologyService := topology.NewTopologyService(s) // inject memory store
 
+	/**
+	* Repository layer - owns state correcntess
+	 */
+	store := store.MakeStore()
+
+	/*
+	* Service layer - injects repository
+	* Owns domain correctness
+	 */
+	topologyService := topology.NewTopologyService(store)
+
+	/**
+	* Constructs the API Layer
+	* API Layer owns transport correcntess
+	 */
 	ns := netsim{
 		Server: makeServer(topologyService), // inject topology service
 	}

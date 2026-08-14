@@ -10,6 +10,9 @@ import (
 /*
 * Run these with race detection!
 * go test -race ./...
+*
+* Note that we don't construct a service layer here,
+* this is all about the repository.
  */
 
 func TestMemoryStoreConcurrentCreate(t *testing.T) {

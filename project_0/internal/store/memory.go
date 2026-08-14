@@ -37,23 +37,29 @@ func (s *MemoryStore) ListTopologies() []topology.Topology {
 
 	// Copy to output
 	for _, topo := range s.topologies {
-		result = append(result, topo)
+		result = append(result, topo.Clone())
 	}
 
 	return result
 
 }
 
+/**
+* Find a Topology -
+* Note how we return a bool instead of an error. This is more idiomatic
+* as this function doesn't provide any more than a found/not-found outcome.
+* There's only 1 failure mode.
+ */
 func (s *MemoryStore) GetTopology(id string) (topology.Topology, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	topo, exists := s.topologies[id]
-	// if !exists {
-	// 	return topology.Topology{}, true
-	// }
+	if !exists {
+		return topology.Topology{}, false
+	}
 
-	return topo, exists
+	return topo.Clone(), true
 }
 
 func (s *MemoryStore) CreateTopology(name string) topology.Topology {
@@ -66,8 +72,9 @@ func (s *MemoryStore) CreateTopology(name string) topology.Topology {
 	s.nextID++
 
 	topology := topology.Topology{
-		ID:   id,
-		Name: name,
+		ID:    id,
+		Name:  name,
+		Nodes: make(map[string]topology.Node),
 	}
 
 	s.topologies[id] = topology
@@ -86,4 +93,30 @@ func (s *MemoryStore) DeleteTopology(id string) bool {
 	delete(s.topologies, id)
 
 	return true
+}
+
+/**
+* Race-free updates to topologies in the store
+ */
+func (s *MemoryStore) UpdateTopology(
+	id string,
+	fn func(*topology.Topology) error,
+) error {
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	topo, exists := s.topologies[id]
+	if !exists {
+		return topology.ErrTopologyNotFound
+	}
+
+	// Perform the mutation/operation
+	if err := fn(&topo); err != nil {
+		return err
+	}
+
+	s.topologies[id] = topo
+
+	return nil
 }

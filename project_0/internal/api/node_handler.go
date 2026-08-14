@@ -1,1 +1,116 @@
 package api
+
+import (
+	"encoding/json"
+	"net/http"
+	"netsim_0/internal/topology"
+)
+
+type createNodeRequest struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+func (a *Handler) CreateNode(w http.ResponseWriter, r *http.Request) {
+
+	topologyId := r.PathValue("topoId")
+
+	/*
+	* Note: Node names & ID will be validated
+	* in the service layer.
+	 */
+
+	var req createNodeRequest
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(
+			w,
+			"invalid request body",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	node, err := a.topologies.CreateNode(
+		topologyId,
+		req.Name,
+		topology.NodeType(req.Type),
+	)
+
+	// Error Handling - Every type that appears throughout the CreateNode process.
+	if err != nil {
+		status, message := ResolveError(err)
+		http.Error(w, message, status)
+		return
+	}
+
+	// Success
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	json.NewEncoder(w).Encode(node)
+}
+
+func (a *Handler) GetNodes(w http.ResponseWriter, r *http.Request) {
+	topologyId := r.PathValue("topoId")
+	nodes, err := a.topologies.ListNodes(topologyId)
+
+	if err != nil {
+		status, message := ResolveError(err)
+		http.Error(w, message, status)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(nodes)
+}
+
+func (a *Handler) GetNode(w http.ResponseWriter, r *http.Request) {
+	topologyId := r.PathValue("topoId")
+	nodeId := r.PathValue("nodeId")
+
+	node, err := a.topologies.GetNode(topologyId, nodeId)
+	if err != nil {
+		status, message := ResolveError(err)
+		http.Error(w, message, status)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(node)
+}
+
+func (a *Handler) DeleteNode(w http.ResponseWriter, r *http.Request) {
+	topologyId := r.PathValue("topoId")
+	nodeId := r.PathValue("nodeId")
+
+	err := a.topologies.DeleteNode(topologyId, nodeId)
+	if err != nil {
+		status, message := ResolveError(err)
+		http.Error(w, message, status)
+		return
+	}
+
+	// 204
+	w.WriteHeader(http.StatusNoContent)
+
+	// Alternatively
+	// w.WriteHeader(http.StatusOK)
+	// w.Write([]byte("deleted"))
+
+	// Or
+	// w.Header().Set("Content-Type", "application/json")
+	// w.WriteHeader(http.StatusOK)
+
+	// json.NewEncoder(w).Encode(map[string]int{
+	// 	"deleted": 1,
+	// })
+
+	// Or define a DeleteResponse
+
+}

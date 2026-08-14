@@ -105,7 +105,7 @@ func (api *Handler) CreateTopology(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Critical section
+	// Critical section - TopologyService
 	new_topology, err := api.topologies.CreateTopology(req.Name)
 	// Critical section
 
