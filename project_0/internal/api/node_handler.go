@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"netsim_0/internal/topology"
 )
@@ -49,7 +50,9 @@ func (a *Handler) CreateNode(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	json.NewEncoder(w).Encode(node)
+	if err := json.NewEncoder(w).Encode(node); err != nil {
+		log.Printf("failed to encode response: %v", err)
+	}
 }
 
 func (a *Handler) GetNodes(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +68,9 @@ func (a *Handler) GetNodes(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	json.NewEncoder(w).Encode(nodes)
+	if err := json.NewEncoder(w).Encode(nodes); err != nil {
+		log.Printf("failed to encode response: %v", err)
+	}
 }
 
 func (a *Handler) GetNode(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +87,9 @@ func (a *Handler) GetNode(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	json.NewEncoder(w).Encode(node)
+	if err := json.NewEncoder(w).Encode(node); err != nil {
+		log.Printf("failed to encode response: %v", err)
+	}
 }
 
 func (a *Handler) DeleteNode(w http.ResponseWriter, r *http.Request) {

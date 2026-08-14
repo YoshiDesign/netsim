@@ -59,6 +59,7 @@ func (s *MemoryStore) GetTopology(id string) (topology.Topology, bool) {
 		return topology.Topology{}, false
 	}
 
+	// Clone!! Do not transmit references to underlying data!
 	return topo.Clone(), true
 }
 

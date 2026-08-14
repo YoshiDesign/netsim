@@ -58,7 +58,9 @@ func (s *TopologyService) CreateTopology(name string) (Topology, error) {
 
 	created := s.store.CreateTopology(name)
 
-	return created, nil
+	// Important that we clone. Go will return a reference
+	// to slices & maps from the underlying data
+	return created.Clone(), nil
 }
 
 /* */
