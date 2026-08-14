@@ -10,7 +10,7 @@ A sandbox environment to create a simple network topology. Most of the code will
 [] Failure manipulation — bring a link down, stop a node, query reachability again, and watch the simulated network respond appropriately.
 [] Clean backend architecture and tests — by the end, the HTTP handlers shouldn't own the domain logic. We'll have something closer to API → Service/Orchestrator → Simulation → Store, with unit tests around the important pieces.
 
-**Conceptually:**
+**Architecture:**
 
 ```text
 api/
@@ -20,12 +20,14 @@ topology/
     What is a topology?
     What is a node?
     What is a link?
+    Service Layer
 
 simulation/
     What does the topology DO?
 
 store/
     Where does our current state live?
+    Repository Layer
 ```
 
 **Implementation:**
@@ -49,11 +51,12 @@ The application simulates its domain in-memory in order to focus on fundamental 
 - Link must be UP
 - Interface must be UP
 
-**Project_0 TODO's and Omissions:**
-- Storage infra (mysql, redis, etc.)
-- Request Authorization
-- Cancellation
-- Operation IDs
-- Timeouts
-- Contexts
-- Concurrency
+**TODO's and Omissions:**
+[x] Concurrency safety (via explicit synchronization)
+[] Request Authorization
+[] Request parameter sanitization
+[] Storage infra (mysql, redis, etc.)
+[] Cancellation
+[] Operation IDs
+[] Timeouts
+[] Contexts

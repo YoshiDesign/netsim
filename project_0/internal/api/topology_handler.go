@@ -12,6 +12,10 @@ import (
 var Topologies = make(map[string]topology.Topology)
 var nextTopologyID = 1
 
+type CreateTopologyRequest struct {
+	Name string `json:"name"`
+}
+
 /*
 *
  */
@@ -81,7 +85,7 @@ func (api *Handler) GetTopologies(w http.ResponseWriter, r *http.Request) {
 *
  */
 func (api *Handler) CreateTopology(w http.ResponseWriter, r *http.Request) {
-	var req topology.CreateTopologyRequest
+	var req CreateTopologyRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {

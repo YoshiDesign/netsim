@@ -23,16 +23,31 @@ func NewHandler(ts *topology.TopologyService) *Handler {
 // an API call to leak internal error messages to the frontend.
 func ResolveError(err error) (int, string) {
 	switch {
+	// Topologies
 	case errors.Is(err, topology.ErrTopologyNotFound):
 		return http.StatusNotFound, err.Error()
 
 	case errors.Is(err, topology.ErrEmptyNodeName):
 		return http.StatusBadRequest, err.Error()
 
+	// Nodes
 	case errors.Is(err, topology.ErrInvalidNodeType):
 		return http.StatusBadRequest, err.Error()
 
 	case errors.Is(err, topology.ErrDuplicateNode):
+		return http.StatusConflict, err.Error()
+
+	// Links
+	case errors.Is(err, topology.ErrDuplicateLink):
+		return http.StatusConflict, err.Error()
+
+	case errors.Is(err, topology.ErrLinkNotFound):
+		return http.StatusNotFound, err.Error()
+
+	case errors.Is(err, topology.ErrEmptyLinkEndpoint):
+		return http.StatusBadRequest, err.Error()
+
+	case errors.Is(err, topology.ErrSelfLink):
 		return http.StatusConflict, err.Error()
 
 	default:

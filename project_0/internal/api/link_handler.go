@@ -4,62 +4,42 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"netsim_0/internal/topology"
 )
 
-type createNodeRequest struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
+type CreateLinkRequest struct {
+	NodeA string `json:"node_a"`
+	NodeB string `json:"node_b"`
 }
 
-func (a *Handler) CreateNode(w http.ResponseWriter, r *http.Request) {
-
+func (a *Handler) CreateLink(w http.ResponseWriter, r *http.Request) {
 	topologyId := r.PathValue("topoId")
 
-	/*
-	* Note: Node names & ID will be validated
-	* in the service layer.
-	 */
+	var req CreateLinkRequest
 
-	var req createNodeRequest
-
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		http.Error(
-			w,
-			"invalid request body",
-			http.StatusBadRequest,
-		)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "failed to parse request body", http.StatusBadRequest)
 		return
 	}
 
-	node, err := a.topologies.CreateNode(
-		topologyId,
-		req.Name,
-		topology.NodeType(req.Type),
-	)
-
-	// Error Handling - Every type that appears throughout the CreateNode process.
+	link, err := a.topologies.CreateLink(topologyId, req.NodeA, req.NodeB)
 	if err != nil {
 		status, message := ResolveError(err)
 		http.Error(w, message, status)
 		return
 	}
 
-	// Success
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(w).Encode(node); err != nil {
-		// Log failures
+	if err := json.NewEncoder(w).Encode(link); err != nil {
 		log.Printf("failed to encode response: %v", err)
 	}
 }
 
-func (a *Handler) GetNodes(w http.ResponseWriter, r *http.Request) {
+func (a *Handler) GetLinks(w http.ResponseWriter, r *http.Request) {
 	topologyId := r.PathValue("topoId")
-	nodes, err := a.topologies.ListNodes(topologyId)
 
+	links, err := a.topologies.ListLinks(topologyId)
 	if err != nil {
 		status, message := ResolveError(err)
 		http.Error(w, message, status)
@@ -69,16 +49,17 @@ func (a *Handler) GetNodes(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	if err := json.NewEncoder(w).Encode(nodes); err != nil {
+	if err := json.NewEncoder(w).Encode(links); err != nil {
 		log.Printf("failed to encode response: %v", err)
 	}
+
 }
 
-func (a *Handler) GetNode(w http.ResponseWriter, r *http.Request) {
+func (a *Handler) GetLink(w http.ResponseWriter, r *http.Request) {
 	topologyId := r.PathValue("topoId")
-	nodeId := r.PathValue("nodeId")
+	linkId := r.PathValue("linkId")
 
-	node, err := a.topologies.GetNode(topologyId, nodeId)
+	link, err := a.topologies.GetLink(topologyId, linkId)
 	if err != nil {
 		status, message := ResolveError(err)
 		http.Error(w, message, status)
@@ -88,23 +69,22 @@ func (a *Handler) GetNode(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	if err := json.NewEncoder(w).Encode(node); err != nil {
+	if err := json.NewEncoder(w).Encode(link); err != nil {
 		log.Printf("failed to encode response: %v", err)
 	}
 }
 
-func (a *Handler) DeleteNode(w http.ResponseWriter, r *http.Request) {
+func (a *Handler) DeleteLink(w http.ResponseWriter, r *http.Request) {
 	topologyId := r.PathValue("topoId")
-	nodeId := r.PathValue("nodeId")
+	linkId := r.PathValue("linkId")
 
-	err := a.topologies.DeleteNode(topologyId, nodeId)
+	err := a.topologies.DeleteLink(topologyId, linkId)
 	if err != nil {
 		status, message := ResolveError(err)
 		http.Error(w, message, status)
 		return
 	}
 
-	// 204
 	w.WriteHeader(http.StatusNoContent)
 
 	// Alternatively
@@ -120,5 +100,4 @@ func (a *Handler) DeleteNode(w http.ResponseWriter, r *http.Request) {
 	// })
 
 	// Or define a DeleteResponse
-
 }

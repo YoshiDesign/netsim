@@ -15,7 +15,7 @@ import (
 * this works even if returned values are via fmt.Errorf. Pretty cool
  */
 
-// Domain specific (non-HTTP) errors for the service layer
+// Domain specific (non-HTTP) invariants for the service layer
 var (
 	// Topo errors
 	ErrTopologyNotFound     = errors.New("topology not found")
@@ -27,6 +27,12 @@ var (
 	ErrEmptyNodeName   = errors.New("node name cannot be empty")
 	ErrInvalidNodeType = errors.New("invalid node type")
 	ErrDuplicateNode   = errors.New("node name already exists")
+
+	// Link errors
+	ErrEmptyLinkEndpoint = errors.New("link endpoint cannot be empty")
+	ErrSelfLink          = errors.New("node cannot link to itself")
+	ErrDuplicateLink     = errors.New("link already exists")
+	ErrLinkNotFound      = errors.New("link not found")
 )
 
 /* */
@@ -36,13 +42,15 @@ func NewTopologyService(store TopologyStore) *TopologyService {
 	}
 }
 
+/**/
 /* * * * * *
 * Topologies
  */
+/**/
 func (s *TopologyService) GetTopology(id string) (Topology, error) {
-	t, exists := s.store.GetTopology(id)
-	if !exists {
-		return Topology{}, ErrTopologyNotFound
+	t, err := s.store.GetTopology(id)
+	if err != nil {
+		return Topology{}, err
 	}
 
 	return t, nil
@@ -78,10 +86,11 @@ func (s *TopologyService) DeleteTopology(id string) error {
 	return nil
 }
 
+/**/
 /* * * *
 * Nodes
  */
-
+/**/
 /* Monotonic NodeId for Node Creation - Could also fit into the Store but that's more upon interface tracking. */
 func (s *TopologyService) NextNodeId() string {
 	id := s.nextNodeNum.Add(1)
@@ -91,12 +100,12 @@ func (s *TopologyService) NextNodeId() string {
 func (s *TopologyService) GetNode(topologyId string, nodeId string) (Node, error) {
 
 	// Get a clone of the topology
-	topo, exists := s.store.GetTopology(topologyId)
-	if !exists {
-		return Node{}, ErrTopologyNotFound
+	topo, err := s.store.GetTopology(topologyId)
+	if err != nil {
+		return Node{}, err
 	}
 
-	// Get the node - no need to copy/clone
+	// Get the node
 	node, ok := topo.Nodes[nodeId]
 	if !ok {
 		return Node{}, ErrNodeNotFound
@@ -129,6 +138,7 @@ func (s *TopologyService) CreateNode(topologyId string, name string, nodeType No
 		topologyId,
 		func(topo *Topology) error {
 
+			// Validation - node's dont already exist by name
 			for _, existing := range topo.Nodes {
 				// Look for name collision
 				if existing.Name == node.Name {
@@ -154,9 +164,9 @@ func (s *TopologyService) CreateNode(topologyId string, name string, nodeType No
 * care about order in Go
  */
 func (s *TopologyService) ListNodes(topologyId string) ([]Node, error) {
-	topo, ok := s.store.GetTopology(topologyId)
-	if !ok {
-		return nil, ErrTopologyNotFound
+	topo, err := s.store.GetTopology(topologyId)
+	if err != nil {
+		return nil, err
 	}
 
 	nodes := make([]Node, 0, len(topo.Nodes))
@@ -189,4 +199,143 @@ func (s *TopologyService) DeleteNode(topologyId string, nodeId string) error {
 
 			return nil
 		})
+}
+
+/**/
+/* * * *
+* Links
+ */
+/**/
+func (s *TopologyService) CreateLink(
+	topoId string,
+	nodeA string,
+	nodeB string,
+) (Link, error) {
+
+	nodeA = strings.TrimSpace(nodeA)
+	nodeB = strings.TrimSpace(nodeB)
+
+	if nodeA == "" || nodeB == "" {
+		return Link{}, ErrEmptyLinkEndpoint
+	}
+
+	if nodeA == nodeB {
+		return Link{}, ErrSelfLink
+	}
+
+	// Normalize the requested link endpoint for storage
+	nodeA, nodeB = canonicalEndpoints(nodeA, nodeB)
+
+	link := Link{
+		ID:    fmt.Sprintf("link-%d", s.nextLinkNum.Add(1)), // increment our monotonic ID
+		NodeA: nodeA,
+		NodeB: nodeB,
+	}
+
+	// Mutate Topology - Create Links - Critical Section
+	// All invariants involving mutable topology state need to be checked inside its callback
+	err := s.store.UpdateTopology(
+		topoId,
+		func(topo *Topology) error {
+
+			if _, exists := topo.Nodes[nodeA]; !exists {
+				return fmt.Errorf("%w: %s", ErrNodeNotFound, nodeA)
+			}
+
+			if _, exists := topo.Nodes[nodeB]; !exists {
+				return fmt.Errorf("%w: %s", ErrNodeNotFound, nodeB)
+			}
+
+			// Validate that the links don't already exist
+			if _, exists := topo.Links[link.ID]; exists {
+				return ErrDuplicateLink
+			}
+
+			topo.Links[link.ID] = link
+			return nil
+		})
+	// Critical Section
+
+	if err != nil {
+		return Link{}, err
+	}
+	return link, nil
+
+}
+
+func (s *TopologyService) ListLinks(topologyId string) ([]Link, error) {
+
+	if strings.TrimSpace(topologyId) == "" {
+		return nil, ErrTopologyIdNotFound
+	}
+
+	topo, err := s.store.GetTopology(topologyId)
+	if err != nil {
+		return nil, err
+	}
+
+	links := make([]Link, 0, len(topo.Links))
+
+	for _, l := range topo.Links {
+		links = append(links, l)
+	}
+
+	// Sort for deterministic/predictable output
+	sort.Slice(links, func(i, j int) bool {
+		return links[i].ID < links[j].ID
+	})
+
+	return links, nil
+
+}
+
+func (s *TopologyService) GetLink(topologyId string, linkId string) (Link, error) {
+	if strings.TrimSpace(topologyId) == "" {
+		return Link{}, ErrTopologyIdNotFound
+	}
+
+	if strings.TrimSpace(linkId) == "" {
+		return Link{}, ErrLinkNotFound
+	}
+
+	topo, err := s.store.GetTopology(topologyId)
+	if err != nil {
+		return Link{}, err
+	}
+
+	// Get the link
+	link, exists := topo.Links[linkId]
+	if !exists {
+		return Link{}, ErrLinkNotFound
+	}
+
+	return link, nil
+}
+
+func (s *TopologyService) DeleteLink(topologyId string, linkId string) error {
+	if strings.TrimSpace(topologyId) == "" {
+		return ErrTopologyIdNotFound
+	}
+
+	if strings.TrimSpace(linkId) == "" {
+		return ErrLinkNotFound
+	}
+
+	// Critical Section
+	// All invariants involving mutable topology state need to be checked inside its callback
+	return s.store.UpdateTopology(
+		topologyId,
+		func(topo *Topology) error {
+
+			if _, ok := topo.Links[linkId]; !ok {
+				return ErrNodeNotFound
+			}
+
+			// Note how simple this is with the support
+			// of our UpdateTopology abstraction!
+			delete(topo.Links, linkId)
+
+			return nil
+		})
+	// Critical Section
 }

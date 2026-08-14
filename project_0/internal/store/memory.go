@@ -45,24 +45,24 @@ func (s *MemoryStore) ListTopologies() []topology.Topology {
 }
 
 /**
-* Find a Topology -
-* Note how we return a bool instead of an error. This is more idiomatic
-* as this function doesn't provide any more than a found/not-found outcome.
-* There's only 1 failure mode.
+* Find a Topology - synchronized
  */
-func (s *MemoryStore) GetTopology(id string) (topology.Topology, bool) {
+func (s *MemoryStore) GetTopology(id string) (topology.Topology, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	topo, exists := s.topologies[id]
 	if !exists {
-		return topology.Topology{}, false
+		return topology.Topology{}, topology.ErrTopologyNotFound
 	}
 
 	// Clone!! Do not transmit references to underlying data!
-	return topo.Clone(), true
+	return topo.Clone(), nil
 }
 
+/**
+* Create a topology - synchronized
+ */
 func (s *MemoryStore) CreateTopology(name string) topology.Topology {
 
 	// write lock
@@ -83,6 +83,9 @@ func (s *MemoryStore) CreateTopology(name string) topology.Topology {
 	return topology
 }
 
+/**
+* Delete a topology - synchronized
+ */
 func (s *MemoryStore) DeleteTopology(id string) bool {
 
 	s.mu.Lock()
@@ -97,7 +100,11 @@ func (s *MemoryStore) DeleteTopology(id string) bool {
 }
 
 /**
+* Any update to Topology state - synchronized
 * Race-free updates to topologies in the store
+*
+* All invariants involving mutable topology state need to
+* be checked inside its callback so they'll also be synchronous
  */
 func (s *MemoryStore) UpdateTopology(
 	id string,
