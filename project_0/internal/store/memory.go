@@ -76,6 +76,7 @@ func (s *MemoryStore) CreateTopology(name string) topology.Topology {
 		ID:    id,
 		Name:  name,
 		Nodes: make(map[string]topology.Node),
+		Links: make(map[string]topology.Link),
 	}
 
 	s.topologies[id] = topology

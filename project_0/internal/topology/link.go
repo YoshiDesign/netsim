@@ -6,6 +6,12 @@ type Link struct {
 	NodeB string `json:"node_b"`
 }
 
+/*
+* Architecture invariant:
+* Every link endpoint must always refer to a node that currently exists in the same topology.
+* This is why deleting a node cascades into the deletion of every link it's involved in.
+ */
+
 // Normalize links
 func canonicalEndpoints(nodeA, nodeB string) (string, string) {
 	if nodeA > nodeB {

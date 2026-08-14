@@ -19,10 +19,11 @@ func NewHandler(ts *topology.TopologyService) *Handler {
 	}
 }
 
-// Centralized error resolution. This also makes it impossible for
-// an API call to leak internal error messages to the frontend.
+// Centralized error resolution. Turns domain-specific errors into an HTTP status coupled with the backend's message.
+// This also makes it impossible for an API call to leak internal error messages to the frontend.
 func ResolveError(err error) (int, string) {
 	switch {
+
 	// Topologies
 	case errors.Is(err, topology.ErrTopologyNotFound):
 		return http.StatusNotFound, err.Error()
@@ -36,6 +37,9 @@ func ResolveError(err error) (int, string) {
 
 	case errors.Is(err, topology.ErrDuplicateNode):
 		return http.StatusConflict, err.Error()
+
+	case errors.Is(err, topology.ErrNodeNotFound):
+		return http.StatusNotFound, err.Error()
 
 	// Links
 	case errors.Is(err, topology.ErrDuplicateLink):
