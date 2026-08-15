@@ -4,13 +4,18 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"netsim_0/internal/topology"
 )
 
 type CreateLinkRequest struct {
-	NodeA string `json:"node_a"`
-	NodeB string `json:"node_b"`
+	NodeA topology.NodeID `json:"node_a"`
+	NodeB topology.NodeID `json:"node_b"`
 }
 
+/*
+* Create a link between nodes
+* See: CreateLinkRequest ^
+ */
 func (a *Handler) CreateLink(w http.ResponseWriter, r *http.Request) {
 	topologyId := r.PathValue("topoId")
 
@@ -21,7 +26,7 @@ func (a *Handler) CreateLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	link, err := a.topologies.CreateLink(topologyId, req.NodeA, req.NodeB)
+	link, err := a.topologies.CreateLink(topologyId, topology.NodeID(req.NodeA), topology.NodeID(req.NodeB))
 	if err != nil {
 		status, message := ResolveError(err)
 		http.Error(w, message, status)

@@ -95,12 +95,12 @@ func (s *TopologyService) DeleteTopology(id string) error {
  */
 /**/
 /* Monotonic NodeId for Node Creation - Could also fit into the Store but that's more upon interface tracking. */
-func (s *TopologyService) NextNodeId() string {
+func (s *TopologyService) NextNodeId() NodeID {
 	id := s.nextNodeNum.Add(1)
-	return fmt.Sprintf("node-%d", id)
+	return NodeID(fmt.Sprintf("node-%d", id))
 } // noexcept :)
 
-func (s *TopologyService) GetNode(topologyId string, nodeId string) (Node, error) {
+func (s *TopologyService) GetNode(topologyId string, nodeId NodeID) (Node, error) {
 
 	// Get a clone of the topology
 	topo, err := s.store.GetTopology(topologyId)
@@ -120,9 +120,9 @@ func (s *TopologyService) GetNode(topologyId string, nodeId string) (Node, error
 /**
 * Create a node in a topology. Mutates a topology race-free using UpdateTopology
  */
-func (s *TopologyService) CreateNode(topologyId string, name string, nodeType NodeType) (Node, error) {
+func (s *TopologyService) CreateNode(topologyId string, name NodeName, nodeType NodeType) (Node, error) {
 
-	if strings.TrimSpace(name) == "" {
+	if name.TrimSpace() == "" {
 		return Node{}, ErrEmptyNodeName
 	}
 
@@ -187,13 +187,22 @@ func (s *TopologyService) ListNodes(topologyId string) ([]Node, error) {
 	return nodes, nil
 }
 
-func (s *TopologyService) DeleteNode(topologyId string, nodeId string) error {
+func (s *TopologyService) DeleteNode(topologyId string, nodeId NodeID) error {
 
 	return s.store.UpdateTopology(
 		topologyId,
 		func(topo *Topology) error {
-			if _, ok := topo.Nodes[nodeId]; !ok {
+
+			node, ok := topo.Nodes[nodeId]
+			if !ok {
 				return ErrNodeNotFound
+			}
+
+			// Delete links to/from this node
+			for _, link := range topo.Links {
+				if link.NodeAName == node.Name || link.NodeBName == node.Name {
+					delete(topo.Links, link.ID)
+				}
 			}
 
 			// Note how simple this is with the support
@@ -211,12 +220,12 @@ func (s *TopologyService) DeleteNode(topologyId string, nodeId string) error {
 /**/
 func (s *TopologyService) CreateLink(
 	topoId string,
-	nodeA string,
-	nodeB string,
+	nodeA NodeID,
+	nodeB NodeID,
 ) (Link, error) {
 
-	nodeA = strings.TrimSpace(nodeA)
-	nodeB = strings.TrimSpace(nodeB)
+	nodeA = nodeA.TrimSpace()
+	nodeB = nodeB.TrimSpace()
 
 	if nodeA == "" || nodeB == "" {
 		return Link{}, ErrEmptyLinkEndpoint
@@ -227,12 +236,14 @@ func (s *TopologyService) CreateLink(
 	}
 
 	// Normalize the requested link endpoint for storage
-	nodeA, nodeB = canonicalEndpoints(nodeA, nodeB)
+	nodeA, nodeB = canonicalEndpointsByID(nodeA, nodeB)
 
 	link := Link{
-		ID:    fmt.Sprintf("link-%d", s.nextLinkNum.Add(1)), // increment our monotonic ID
-		NodeA: nodeA,
-		NodeB: nodeB,
+		ID:        fmt.Sprintf("link-%d", s.nextLinkNum.Add(1)), // increment our monotonic ID
+		NodeAID:   nodeA,
+		NodeBID:   nodeB,
+		NodeAName: NodeName(INVALID_NODE),
+		NodeBName: NodeName(INVALID_NODE),
 	}
 
 	// Mutate Topology - Create Links - Critical Section
@@ -241,11 +252,27 @@ func (s *TopologyService) CreateLink(
 		topoId,
 		func(topo *Topology) error {
 
-			if _, exists := topo.Nodes[nodeA]; !exists {
-				return fmt.Errorf("%w: %s", ErrNodeNotFound, nodeA)
+			// Search for the  nodes in the topology
+			foundA := false
+			foundB := false
+			for _, n := range topo.Nodes {
+				if !foundA {
+					foundA = n.ID == nodeA
+					// Assign the (A) node's ID with the link
+					link.NodeAName = n.Name
+				}
+				if !foundB {
+					foundB = n.ID == nodeB
+					// Assign the (B) node's ID with the link
+					link.NodeBName = n.Name
+				}
 			}
 
-			if _, exists := topo.Nodes[nodeB]; !exists {
+			// TODO: This should be improved upon - report which was missing
+			if !foundA {
+				return fmt.Errorf("%w: %s", ErrNodeNotFound, nodeA)
+			}
+			if !foundB {
 				return fmt.Errorf("%w: %s", ErrNodeNotFound, nodeB)
 			}
 

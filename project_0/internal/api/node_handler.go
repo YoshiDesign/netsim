@@ -35,7 +35,7 @@ func (a *Handler) CreateNode(w http.ResponseWriter, r *http.Request) {
 
 	node, err := a.topologies.CreateNode(
 		topologyId,
-		req.Name,
+		topology.NodeName(req.Name),
 		topology.NodeType(req.Type),
 	)
 
@@ -78,7 +78,7 @@ func (a *Handler) GetNode(w http.ResponseWriter, r *http.Request) {
 	topologyId := r.PathValue("topoId")
 	nodeId := r.PathValue("nodeId")
 
-	node, err := a.topologies.GetNode(topologyId, nodeId)
+	node, err := a.topologies.GetNode(topologyId, topology.NodeID(nodeId))
 	if err != nil {
 		status, message := ResolveError(err)
 		http.Error(w, message, status)
@@ -97,7 +97,7 @@ func (a *Handler) DeleteNode(w http.ResponseWriter, r *http.Request) {
 	topologyId := r.PathValue("topoId")
 	nodeId := r.PathValue("nodeId")
 
-	err := a.topologies.DeleteNode(topologyId, nodeId)
+	err := a.topologies.DeleteNode(topologyId, topology.NodeID(nodeId))
 	if err != nil {
 		status, message := ResolveError(err)
 		http.Error(w, message, status)

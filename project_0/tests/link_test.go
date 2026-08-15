@@ -329,5 +329,76 @@ func TestDeleteLinkNotFound(t *testing.T) {
 
 }
 func TestDeleteNodeRemovesAttachedLinks(t *testing.T) {
+	store := store.MakeStore()
+	service := topology.NewTopologyService(store)
+
+	testTopology, err := service.CreateTopology("test-topology")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	topoId := testTopology.ID
+
+	node1, err := service.CreateNode(topoId, "test-node-1", topology.NodeTypeRouter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	node2, err := service.CreateNode(topoId, "test-node-2", topology.NodeTypeSwitch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	node3, err := service.CreateNode(topoId, "test-node-3", topology.NodeTypeRouter)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.CreateLink(
+		topoId,
+		node1.ID,
+		node2.ID,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = service.CreateLink(
+		topoId,
+		node2.ID,
+		node3.ID,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testTopology_refetch1, err := service.GetTopology(testTopology.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	linkList1, err := service.ListLinks(testTopology_refetch1.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(linkList1) != 2 {
+		t.Fatal(err)
+	}
+
+	service.DeleteNode(topoId, node2.ID)
+
+	testTopology_refetch2, err := service.GetTopology(testTopology.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	linkList2, err := service.ListLinks(testTopology_refetch2.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(len(linkList2))
+
+	if len(linkList2) != 0 {
+		t.Fatal(err)
+	}
 
 }

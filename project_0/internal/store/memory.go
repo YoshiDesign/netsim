@@ -75,7 +75,7 @@ func (s *MemoryStore) CreateTopology(name string) topology.Topology {
 	topology := topology.Topology{
 		ID:    id,
 		Name:  name,
-		Nodes: make(map[string]topology.Node),
+		Nodes: make(map[topology.NodeID]topology.Node),
 		Links: make(map[string]topology.Link),
 	}
 
@@ -120,7 +120,7 @@ func (s *MemoryStore) UpdateTopology(
 		return topology.ErrTopologyNotFound
 	}
 
-	// Perform the mutation/operation
+	// Perform the mutation/operation. `fn` MUST ENFORCE YOUR INVARIANTS - CONCURRENCY IS NOT A DRILL
 	if err := fn(&topo); err != nil {
 		return err
 	}

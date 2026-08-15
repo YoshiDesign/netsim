@@ -5,7 +5,7 @@ import "sync/atomic"
 type Topology struct {
 	ID    string          `json:"id"`
 	Name  string          `json:"name"`
-	Nodes map[string]Node `json:"nodes"`
+	Nodes map[NodeID]Node `json:"nodes"`
 	Links map[string]Link `json:"links"`
 	// ^ Bear in mind the referential nature of maps (& slices).
 	// This is why we provide an explicit Clone() operation.
@@ -33,11 +33,16 @@ func (t Topology) Clone() Topology {
 	clone := Topology{
 		ID:    t.ID,
 		Name:  t.Name,
-		Nodes: make(map[string]Node, len(t.Nodes)),
+		Nodes: make(map[NodeID]Node, len(t.Nodes)),
+		Links: make(map[string]Link, len(t.Links)),
 	}
 
 	for id, node := range t.Nodes {
 		clone.Nodes[id] = node
+	}
+
+	for id, link := range t.Links {
+		clone.Links[id] = link
 	}
 
 	return clone

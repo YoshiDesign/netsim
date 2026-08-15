@@ -55,12 +55,12 @@ func TestConcurrentNodeCreation(t *testing.T) {
 
 			nodeName := fmt.Sprintf("router-%d", i)
 
-			node, err := topoService.CreateNode(topo.ID, nodeName, topology.NodeTypeRouter)
+			node, err := topoService.CreateNode(topo.ID, topology.NodeName(nodeName), topology.NodeTypeRouter)
 			if err != nil {
 				t.Errorf("fail: %v", err)
 			}
 
-			if node.Name != nodeName {
+			if node.Name != topology.NodeName(nodeName) {
 				t.Error("fail: node name does not match request")
 			}
 
@@ -82,7 +82,7 @@ func TestConcurrentNodeCreation(t *testing.T) {
 		)
 	}
 
-	idMap := make(map[string]bool)
+	idMap := make(map[topology.NodeID]bool)
 	for _, node := range topo.Nodes {
 
 		if exists := idMap[node.ID]; exists {

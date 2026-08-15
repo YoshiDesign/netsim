@@ -1,9 +1,11 @@
 package topology
 
 type Link struct {
-	ID    string `json:"id"`
-	NodeA string `json:"node_a"`
-	NodeB string `json:"node_b"`
+	ID        string   `json:"id"`
+	NodeAName NodeName `json:"node_a"`
+	NodeBName NodeName `json:"node_b"`
+	NodeAID   NodeID   `json:"node_a_id"`
+	NodeBID   NodeID   `json:"node_b_id"`
 }
 
 /*
@@ -13,7 +15,7 @@ type Link struct {
  */
 
 // Normalize links
-func canonicalEndpoints(nodeA, nodeB string) (string, string) {
+func canonicalEndpointsByID(nodeA, nodeB NodeID) (NodeID, NodeID) {
 	if nodeA > nodeB {
 		return nodeB, nodeA
 	}
