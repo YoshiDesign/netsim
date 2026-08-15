@@ -27,21 +27,188 @@ import (
 
 func TestCreateLink(t *testing.T) {
 
+	store := store.MakeStore()
+	service := topology.NewTopologyService(store)
+
+	testTopology, err := service.CreateTopology("test-topology")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	topoId := testTopology.ID
+
+	node1, err := service.CreateNode(topoId, "test-node-1", topology.NodeTypeRouter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	node2, err := service.CreateNode(topoId, "test-node-2", topology.NodeTypeSwitch)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.CreateLink(
+		topoId,
+		node1.ID,
+		node2.ID,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 func TestCreateLinkTopologyNotFound(t *testing.T) {
+	store := store.MakeStore()
+	service := topology.NewTopologyService(store)
 
+	testTopology, err := service.CreateTopology("test-topology")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	topoId := testTopology.ID
+
+	node1, err := service.CreateNode(topoId, "test-node-1", topology.NodeTypeRouter)
+	if err != nil && !errors.Is(err, topology.ErrTopologyNotFound) {
+		t.Fatal(err)
+	}
+
+	_, err = service.CreateLink(
+		topoId,
+		"non-existent",
+		node1.ID,
+	)
+
+	if err != nil && !errors.Is(err, topology.ErrNodeNotFound) {
+		t.Fatal(err)
+	}
+
+	if err == nil {
+		t.Fatal(err)
+	}
 }
 func TestCreateLinkNodeANotFound(t *testing.T) {
 
+	store := store.MakeStore()
+	service := topology.NewTopologyService(store)
+
+	testTopology, err := service.CreateTopology("test-topology")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	topoId := testTopology.ID
+
+	node1, err := service.CreateNode(topoId, "test-node-1", topology.NodeTypeRouter)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.CreateLink(
+		topoId,
+		"non-existent",
+		node1.ID,
+	)
+
+	if err != nil && !errors.Is(err, topology.ErrNodeNotFound) {
+		t.Fatal(err)
+	}
+
+	if err == nil {
+		t.Fatal(err)
+	}
 }
 func TestCreateLinkNodeBNotFound(t *testing.T) {
 
+	store := store.MakeStore()
+	service := topology.NewTopologyService(store)
+
+	testTopology, err := service.CreateTopology("test-topology")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	topoId := testTopology.ID
+
+	node1, err := service.CreateNode(topoId, "test-node-1", topology.NodeTypeRouter)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.CreateLink(
+		topoId,
+		node1.ID,
+		"non-existent",
+	)
+	if err == nil {
+		t.Fatal(err)
+	}
+
 }
 func TestCreateLinkSelfReference(t *testing.T) {
+	store := store.MakeStore()
+	service := topology.NewTopologyService(store)
 
+	testTopology, err := service.CreateTopology("test-topology")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	topoId := testTopology.ID
+
+	node1, err := service.CreateNode(topoId, "test-node-1", topology.NodeTypeRouter)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.CreateLink(
+		topoId,
+		node1.ID,
+		node1.ID,
+	)
+	if err != nil && !errors.Is(err, topology.ErrSelfLink) {
+		t.Fatal(err)
+	}
+	if err == nil {
+		t.Fatal(err)
+	}
 }
 func TestCreateLinkDuplicate(t *testing.T) {
 
+	store := store.MakeStore()
+	service := topology.NewTopologyService(store)
+
+	testTopology, err := service.CreateTopology("test-topology")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	topoId := testTopology.ID
+
+	node1, err := service.CreateNode(topoId, "test-node-1", topology.NodeTypeRouter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	node2, err := service.CreateNode(topoId, "test-node-2", topology.NodeTypeSwitch)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.CreateLink(
+		topoId,
+		node1.ID,
+		node2.ID,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = service.CreateLink(
+		topoId,
+		node1.ID,
+		node2.ID,
+	)
+
+	if err != nil && !errors.Is(err, topology.ErrDuplicateLink) {
+		t.Fatalf("expected ErrDuplicateLink, got %v", err)
+	}
 }
 func TestCreateLinkDuplicateReversed(t *testing.T) {
 
@@ -83,9 +250,82 @@ func TestCreateLinkDuplicateReversed(t *testing.T) {
 	}
 }
 func TestDeleteLink(t *testing.T) {
+	store := store.MakeStore()
+	service := topology.NewTopologyService(store)
 
+	testTopology, err := service.CreateTopology("test-topology")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	topoId := testTopology.ID
+
+	node1, err := service.CreateNode(topoId, "test-node-1", topology.NodeTypeRouter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	node2, err := service.CreateNode(topoId, "test-node-2", topology.NodeTypeSwitch)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	link, err := service.CreateLink(
+		topoId,
+		node1.ID,
+		node2.ID,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = service.DeleteLink(topoId, link.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 func TestDeleteLinkNotFound(t *testing.T) {
+	store := store.MakeStore()
+	service := topology.NewTopologyService(store)
+
+	testTopology, err := service.CreateTopology("test-topology")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	topoId := testTopology.ID
+
+	node1, err := service.CreateNode(topoId, "test-node-1", topology.NodeTypeRouter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	node2, err := service.CreateNode(topoId, "test-node-2", topology.NodeTypeSwitch)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	link, err := service.CreateLink(
+		topoId,
+		node1.ID,
+		node2.ID,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = service.DeleteLink(topoId, link.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = service.DeleteLink(topoId, "non-existent-link")
+	if err != nil && !errors.Is(err, topology.ErrLinkNotFound) {
+		t.Fatal(err)
+	}
+
+	err = service.DeleteLink(topoId, "      ")
+	if err != nil && !errors.Is(err, topology.ErrLinkNotFound) {
+		t.Fatal(err)
+	}
 
 }
 func TestDeleteNodeRemovesAttachedLinks(t *testing.T) {

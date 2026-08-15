@@ -17,22 +17,25 @@ import (
 
 // Domain specific (non-HTTP) invariants for the service layer
 var (
+
+	// Status codes are provided in comments as a reference
+
 	// Topo errors
-	ErrTopologyNotFound     = errors.New("topology not found")
-	ErrTopologyNameRequired = errors.New("topology name is required")
-	ErrTopologyIdNotFound   = errors.New("topology ID not found")
+	ErrTopologyNotFound     = errors.New("topology not found")        // use when there's no topology for a given id - 404
+	ErrTopologyNameRequired = errors.New("topology name is required") // 400
+	ErrTopologyIdNotFound   = errors.New("topology ID not found")     // Use when there's not topo-ID in the request - 400
 
 	// Node errors
-	ErrNodeNotFound    = errors.New("node not found")
-	ErrEmptyNodeName   = errors.New("node name cannot be empty")
-	ErrInvalidNodeType = errors.New("invalid node type")
-	ErrDuplicateNode   = errors.New("node name already exists")
+	ErrNodeNotFound    = errors.New("node not found")            // 404
+	ErrEmptyNodeName   = errors.New("node name cannot be empty") // 400
+	ErrInvalidNodeType = errors.New("invalid node type")         // 400
+	ErrDuplicateNode   = errors.New("node name already exists")  // 400
 
 	// Link errors
-	ErrEmptyLinkEndpoint = errors.New("link endpoint cannot be empty")
-	ErrSelfLink          = errors.New("node cannot link to itself")
-	ErrDuplicateLink     = errors.New("link already exists")
-	ErrLinkNotFound      = errors.New("link not found")
+	ErrEmptyLinkEndpoint = errors.New("link endpoint cannot be empty") // 400
+	ErrSelfLink          = errors.New("node cannot link to itself")    // 400
+	ErrDuplicateLink     = errors.New("link already exists")           // 400
+	ErrLinkNotFound      = errors.New("link not found")                // 404
 )
 
 /* */
@@ -328,7 +331,7 @@ func (s *TopologyService) DeleteLink(topologyId string, linkId string) error {
 		func(topo *Topology) error {
 
 			if _, ok := topo.Links[linkId]; !ok {
-				return ErrNodeNotFound
+				return ErrLinkNotFound
 			}
 
 			// Note how simple this is with the support

@@ -167,8 +167,8 @@ func (api *Handler) DeleteTopology(w http.ResponseWriter, r *http.Request) {
 	// Critical Section
 
 	if err != nil {
-		// 404 - Not very info-sec friendly, just being explicit/transparent for project-0
-		if errors.Is(err, topology.ErrTopologyIdNotFound) {
+		// 404
+		if errors.Is(err, topology.ErrTopologyNotFound) {
 			http.Error(
 				w,
 				err.Error(),

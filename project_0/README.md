@@ -55,8 +55,10 @@ The application simulates its domain in-memory in order to focus on fundamental 
 [x] Concurrency safety (via explicit synchronization)
 [] Request Authorization
 [] Request parameter sanitization
+[] Replace `id string` with `type id <T>` (E.g. Define `type NodeID string` for `Node.ID` instead of generic `Node.ID string`)
 [] Storage infra (mysql, redis, etc.)
 [] Cancellation
 [] Operation IDs
 [] Timeouts
 [] Contexts
+[] Dockerize
