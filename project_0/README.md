@@ -51,11 +51,25 @@ The application simulates its domain in-memory in order to focus on fundamental 
 - Link must be UP
 - Interface must be UP
 
-**TODO's and Omissions:**
+## **Network Architecture:**
+#### Network-layer configuration
+[] Formalize attachment points
+[] Interfaces
+[] IPv4/CIDR addressing
+[] Interface-aware links
+[] Directly connected routes (derived from interface config)
+[] Routing Tables + longest-prefix match (from scratch)
+[] Default Gateways / static routes
+[] Simulated `ping` path
+
+## **Software Architecture:**
 [x] Concurrency safety (via explicit synchronization)
 [] Request Authorization
 [] Request parameter sanitization
-[] Replace `id string` with `type id <T>` (E.g. Define `type NodeID string` for `Node.ID` instead of generic `Node.ID string`)
+[x] Replace `id string` with `type id <T>`
+    [x] NodeName and NodeID
+    [] LinkID
+    [] TopologyID
 [] Storage infra (mysql, redis, etc.)
 [] Cancellation
 [] Operation IDs
