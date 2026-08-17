@@ -16,6 +16,13 @@ type InterfaceID string
 * The parent node must exist.
 * The parent topology must exist.
  */
+
+/*
+ * TODOs
+ * Linked interfaces require a shared subnet (Topology/Network validation)
+ * For now we're only focused on valid IPv4 configurations, not network realism
+ */
+
 type Interface struct {
 	ID      InterfaceID   `json:"id"`
 	Name    InterfaceName `json:"name"`
