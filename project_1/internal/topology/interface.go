@@ -1,6 +1,12 @@
 package topology
 
-import "strings"
+import (
+	"net/netip"
+	"strings"
+)
+
+type InterfaceName string
+type InterfaceID string
 
 /*
 * Invariants:
@@ -11,12 +17,10 @@ import "strings"
 * The parent topology must exist.
  */
 type Interface struct {
-	ID   InterfaceID   `json:"id"`
-	Name InterfaceName `json:"name"`
+	ID      InterfaceID   `json:"id"`
+	Name    InterfaceName `json:"name"`
+	Address netip.Prefix  `json:"address"`
 }
-
-type InterfaceName string
-type InterfaceID string
 
 func (id InterfaceID) TrimSpace() InterfaceID {
 	return InterfaceID(strings.TrimSpace(string(id)))

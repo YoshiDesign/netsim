@@ -134,7 +134,10 @@ func (s *MemoryStore) UpdateTopology(
 * Creating an interface requires us to check invariants
 * before modifying nodes. This implies a critical section
 * in order to 1. Verify invariants and 2. Create the interface
-* as one race-free operation
+* as one race-free operation.
+*
+* TODO: I think we can simply use UpdateTopology from the callsite instead
+* of adding another method to the MemoryStore
  */
 func (s *MemoryStore) AddInterface(
 	topologyID string,
@@ -168,6 +171,12 @@ func (s *MemoryStore) AddInterface(
 	node, ok := topo.Nodes[nodeID]
 	if !ok {
 		return topology.ErrNodeNotFound
+	}
+
+	for _, _iface := range node.Interfaces {
+		if _iface.Name == iface.Name {
+			return topology.ErrDuplicateInterfaceName
+		}
 	}
 
 	node.Interfaces = append(node.Interfaces, iface)

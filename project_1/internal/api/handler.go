@@ -54,6 +54,19 @@ func ResolveError(err error) (int, string) {
 	case errors.Is(err, topology.ErrSelfLink):
 		return http.StatusConflict, err.Error()
 
+	// Interfaces
+	case errors.Is(err, topology.ErrEmptyInterfaceName):
+		return http.StatusBadRequest, err.Error()
+
+	case errors.Is(err, topology.ErrDuplicateInterfaceName):
+		return http.StatusConflict, err.Error()
+
+	case errors.Is(err, topology.ErrInterfaceNotFound):
+		return http.StatusNotFound, err.Error()
+
+	case errors.Is(err, topology.ErrInvalidIPv4Prefix):
+		return http.StatusBadRequest, err.Error()
+
 	default:
 		return http.StatusInternalServerError, "internal server error"
 	}

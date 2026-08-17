@@ -59,7 +59,7 @@ func (api *Handler) GetTopology(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(topo); err != nil {
+	if err = json.NewEncoder(w).Encode(topo); err != nil {
 		log.Printf("failed to send topology information: %v", err)
 	}
 
@@ -139,7 +139,7 @@ func (api *Handler) CreateTopology(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	// serialize
-	if err := json.NewEncoder(w).Encode(new_topology); err != nil {
+	if err = json.NewEncoder(w).Encode(new_topology); err != nil {
 		log.Printf("failed to encode topology: %v", err)
 	}
 

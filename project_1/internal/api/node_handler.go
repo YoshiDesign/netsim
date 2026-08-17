@@ -50,7 +50,7 @@ func (a *Handler) CreateNode(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(w).Encode(node); err != nil {
+	if err = json.NewEncoder(w).Encode(node); err != nil {
 		// Log failures
 		log.Printf("failed to encode response: %v", err)
 	}
@@ -69,7 +69,7 @@ func (a *Handler) GetNodes(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	if err := json.NewEncoder(w).Encode(nodes); err != nil {
+	if err = json.NewEncoder(w).Encode(nodes); err != nil {
 		log.Printf("failed to encode response: %v", err)
 	}
 }
@@ -88,7 +88,7 @@ func (a *Handler) GetNode(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	if err := json.NewEncoder(w).Encode(node); err != nil {
+	if err = json.NewEncoder(w).Encode(node); err != nil {
 		log.Printf("failed to encode response: %v", err)
 	}
 }

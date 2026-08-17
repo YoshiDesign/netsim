@@ -36,7 +36,7 @@ func (a *Handler) CreateLink(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(w).Encode(link); err != nil {
+	if err = json.NewEncoder(w).Encode(link); err != nil {
 		log.Printf("failed to encode response: %v", err)
 	}
 }
@@ -54,7 +54,7 @@ func (a *Handler) GetLinks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	if err := json.NewEncoder(w).Encode(links); err != nil {
+	if err = json.NewEncoder(w).Encode(links); err != nil {
 		log.Printf("failed to encode response: %v", err)
 	}
 
@@ -74,7 +74,7 @@ func (a *Handler) GetLink(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	if err := json.NewEncoder(w).Encode(link); err != nil {
+	if err = json.NewEncoder(w).Encode(link); err != nil {
 		log.Printf("failed to encode response: %v", err)
 	}
 }

@@ -3,6 +3,7 @@ package topology
 import (
 	"errors"
 	"fmt"
+	"net/netip"
 	"sort"
 	"strings"
 )
@@ -41,6 +42,9 @@ var (
 	ErrEmptyInterfaceName     = errors.New("interface name cannot be empty") // 400
 	ErrDuplicateInterfaceName = errors.New("interface name already exists")  // 400 (409)
 	ErrInterfaceNotFound      = errors.New("interface not found")            // 404
+
+	// IP
+	ErrInvalidIPv4Prefix = errors.New("invalid ipv4 address prefix")
 )
 
 /* */
@@ -415,12 +419,72 @@ func (s *TopologyService) CreateInterface(
 		Name: name,
 		ID:   s.NextInterfaceId(),
 	}
-	s.store.AddInterface(topologyId, nodeID, iface)
+
+	err := s.store.AddInterface(topologyId, nodeID, iface)
+	if err != nil {
+		return Interface{}, err
+	}
 
 	// TODO
 	// enforce uniqueness
 	// construct interface
 	// persist mutation
 
-	return Interface{}, nil
+	return iface, nil
+}
+
+/* * * * * * *
+* TODO - Many of these functions might belong in a separate NetworkingService
+* which utilizes the same underlying store
+ */
+/**/
+func (s *TopologyService) SetInterfaceAddress(
+	topologyID string,
+	nodeID NodeID,
+	interfaceID InterfaceID,
+	address string,
+) (Interface, error) {
+
+	prefix, err := netip.ParsePrefix(address)
+	if err != nil {
+		// %q preserves any control sequences or escaped values. Great for debugging
+		return Interface{}, fmt.Errorf("%w: %q", ErrInvalidIPv4Prefix, address)
+	}
+
+	// We're rejecting IPv6 for now
+	if !prefix.Addr().Is4() {
+		return Interface{}, fmt.Errorf("%w: %q", ErrInvalidIPv4Prefix, address)
+	}
+
+	var updated Interface
+
+	// Using our critical section update
+	s.store.UpdateTopology(topologyID, func(topo *Topology) error {
+		// get the node
+		node, ok := topo.Nodes[nodeID]
+		if !ok {
+			return ErrNodeNotFound
+		}
+
+		// Locate the interface we're
+		for idx := range node.Interfaces {
+			iface := &node.Interfaces[idx] // acquire ref
+
+			if iface.ID != interfaceID {
+				continue
+			}
+
+			// Set the interface address
+			iface.Address = prefix
+			updated = *iface // copy
+
+			return nil
+		}
+
+		return ErrInterfaceNotFound
+
+	})
+
+	return updated, nil
+
 }
