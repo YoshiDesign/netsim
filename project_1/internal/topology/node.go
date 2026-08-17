@@ -25,9 +25,10 @@ const (
 )
 
 type Node struct {
-	ID   NodeID   `json:"id"`
-	Name NodeName `json:"name"`
-	Type NodeType `json:"type"`
+	ID         NodeID      `json:"id"`
+	Name       NodeName    `json:"name"`
+	Type       NodeType    `json:"type"`
+	Interfaces []Interface `json:"interfaces"`
 }
 
 func (t NodeType) Valid() bool {

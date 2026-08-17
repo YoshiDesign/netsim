@@ -1,7 +1,12 @@
 package topology
 
+import "strings"
+
+type LinkName string
+type LinkID string
+
 type Link struct {
-	ID        string   `json:"id"`
+	ID        LinkID   `json:"id"`
 	NodeAName NodeName `json:"node_a"`
 	NodeBName NodeName `json:"node_b"`
 	NodeAID   NodeID   `json:"node_a_id"`
@@ -21,6 +26,14 @@ func canonicalEndpointsByID(nodeA, nodeB NodeID) (NodeID, NodeID) {
 	}
 
 	return nodeA, nodeB
+}
+
+func (s LinkName) TrimSpace() LinkName {
+	return LinkName(strings.TrimSpace(string(s)))
+}
+
+func (s LinkID) TrimSpace() LinkID {
+	return LinkID(strings.TrimSpace(string(s)))
 }
 
 // TODO - make a simple validation abstraction.

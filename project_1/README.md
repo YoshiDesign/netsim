@@ -13,6 +13,7 @@ A sandbox environment to create a simple network topology. Most of the code will
 **Architecture:**
 
 ```text
+REST/API:
 api/
     HTTP concerns
 
@@ -28,6 +29,27 @@ simulation/
 store/
     Where does our current state live?
     Repository Layer
+_________________________________________
+
+        REST/API
+            |
+            v
+    Authoritative Topology
+    map[NodeID]Node
+    map[LinkID]Link
+            |
+            | Compile()
+            v
+    Compiled Runtime Graph
+    []RuntimeNode
+    []RuntimeInterface
+    []RuntimeLink
+    adjacency/index tables
+            |
+            v
+        Simulation State
+    queues / counters /
+    scheduler / events
 ```
 
 **Implementation:**

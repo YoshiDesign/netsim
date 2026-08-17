@@ -76,7 +76,7 @@ func (s *MemoryStore) CreateTopology(name string) topology.Topology {
 		ID:    id,
 		Name:  name,
 		Nodes: make(map[topology.NodeID]topology.Node),
-		Links: make(map[string]topology.Link),
+		Links: make(map[topology.LinkID]topology.Link),
 	}
 
 	s.topologies[id] = topology
@@ -126,6 +126,53 @@ func (s *MemoryStore) UpdateTopology(
 	}
 
 	s.topologies[id] = topo
+
+	return nil
+}
+
+/*
+* Creating an interface requires us to check invariants
+* before modifying nodes. This implies a critical section
+* in order to 1. Verify invariants and 2. Create the interface
+* as one race-free operation
+ */
+func (s *MemoryStore) AddInterface(
+	topologyID string,
+	nodeID topology.NodeID,
+	iface topology.Interface,
+) error {
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// topology lookup
+	// node lookup
+	// duplicate check
+	// append
+	// Does topology exist?
+	//         ↓
+	// Does node exist?
+	//         ↓
+	// Is name valid?
+	//         ↓
+	// Does node already have an interface with that name?
+	//         ↓
+	// Create interface
+
+	// Don't use GetTopology, we already have the lock (will cause a deadlock)
+	topo, ok := s.topologies[topologyID]
+	if !ok {
+		return topology.ErrTopologyNotFound
+	}
+
+	node, ok := topo.Nodes[nodeID]
+	if !ok {
+		return topology.ErrNodeNotFound
+	}
+
+	node.Interfaces = append(node.Interfaces, iface)
+	topo.Nodes[nodeID] = node
+	s.topologies[topologyID] = topo
 
 	return nil
 }

@@ -34,8 +34,13 @@ var (
 	// Link errors
 	ErrEmptyLinkEndpoint = errors.New("link endpoint cannot be empty") // 400
 	ErrSelfLink          = errors.New("node cannot link to itself")    // 400
-	ErrDuplicateLink     = errors.New("link already exists")           // 400
+	ErrDuplicateLink     = errors.New("link already exists")           // 400 (409)
 	ErrLinkNotFound      = errors.New("link not found")                // 404
+
+	// Interface errors
+	ErrEmptyInterfaceName     = errors.New("interface name cannot be empty") // 400
+	ErrDuplicateInterfaceName = errors.New("interface name already exists")  // 400 (409)
+	ErrInterfaceNotFound      = errors.New("interface not found")            // 404
 )
 
 /* */
@@ -98,7 +103,17 @@ func (s *TopologyService) DeleteTopology(id string) error {
 func (s *TopologyService) NextNodeId() NodeID {
 	id := s.nextNodeNum.Add(1)
 	return NodeID(fmt.Sprintf("node-%d", id))
-} // noexcept :)
+}
+
+func (s *TopologyService) NextInterfaceId() InterfaceID {
+	id := s.nextIfaceNum.Add(1)
+	return InterfaceID(fmt.Sprintf("iface-%d", id))
+}
+
+func (s *TopologyService) NextLinkId() LinkID {
+	id := s.nextLinkNum.Add(1)
+	return LinkID(fmt.Sprintf("link-%d", id))
+}
 
 func (s *TopologyService) GetNode(topologyId string, nodeId NodeID) (Node, error) {
 
@@ -239,7 +254,7 @@ func (s *TopologyService) CreateLink(
 	nodeA, nodeB = canonicalEndpointsByID(nodeA, nodeB)
 
 	link := Link{
-		ID:        fmt.Sprintf("link-%d", s.nextLinkNum.Add(1)), // increment our monotonic ID
+		ID:        s.NextLinkId(), // increment our monotonic ID
 		NodeAID:   nodeA,
 		NodeBID:   nodeB,
 		NodeAName: NodeName(INVALID_NODE),
@@ -319,12 +334,12 @@ func (s *TopologyService) ListLinks(topologyId string) ([]Link, error) {
 
 }
 
-func (s *TopologyService) GetLink(topologyId string, linkId string) (Link, error) {
+func (s *TopologyService) GetLink(topologyId string, linkId LinkID) (Link, error) {
 	if strings.TrimSpace(topologyId) == "" {
 		return Link{}, ErrTopologyIdNotFound
 	}
 
-	if strings.TrimSpace(linkId) == "" {
+	if linkId.TrimSpace() == "" {
 		return Link{}, ErrLinkNotFound
 	}
 
@@ -342,12 +357,12 @@ func (s *TopologyService) GetLink(topologyId string, linkId string) (Link, error
 	return link, nil
 }
 
-func (s *TopologyService) DeleteLink(topologyId string, linkId string) error {
+func (s *TopologyService) DeleteLink(topologyId string, linkId LinkID) error {
 	if strings.TrimSpace(topologyId) == "" {
 		return ErrTopologyIdNotFound
 	}
 
-	if strings.TrimSpace(linkId) == "" {
+	if linkId.TrimSpace() == "" {
 		return ErrLinkNotFound
 	}
 
@@ -368,4 +383,44 @@ func (s *TopologyService) DeleteLink(topologyId string, linkId string) error {
 			return nil
 		})
 	// Critical Section
+}
+
+/**/
+/* * * * * *
+* Interfaces
+ */
+/**/
+
+func (s *TopologyService) CreateInterface(
+	topologyId string,
+	nodeID NodeID,
+	name InterfaceName,
+) (Interface, error) {
+
+	if name.TrimSpace() == "" {
+		return Interface{}, ErrEmptyInterfaceName
+	}
+
+	// Does topology exist?
+	//         ↓
+	// Does node exist?
+	//         ↓
+	// Is name valid?
+	//         ↓
+	// Does node already have an interface with that name?
+	//         ↓
+	// Create interface
+
+	iface := Interface{
+		Name: name,
+		ID:   s.NextInterfaceId(),
+	}
+	s.store.AddInterface(topologyId, nodeID, iface)
+
+	// TODO
+	// enforce uniqueness
+	// construct interface
+	// persist mutation
+
+	return Interface{}, nil
 }

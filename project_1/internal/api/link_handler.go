@@ -64,7 +64,7 @@ func (a *Handler) GetLink(w http.ResponseWriter, r *http.Request) {
 	topologyId := r.PathValue("topoId")
 	linkId := r.PathValue("linkId")
 
-	link, err := a.topologies.GetLink(topologyId, linkId)
+	link, err := a.topologies.GetLink(topologyId, topology.LinkID(linkId))
 	if err != nil {
 		status, message := ResolveError(err)
 		http.Error(w, message, status)
@@ -83,7 +83,7 @@ func (a *Handler) DeleteLink(w http.ResponseWriter, r *http.Request) {
 	topologyId := r.PathValue("topoId")
 	linkId := r.PathValue("linkId")
 
-	err := a.topologies.DeleteLink(topologyId, linkId)
+	err := a.topologies.DeleteLink(topologyId, topology.LinkID(linkId))
 	if err != nil {
 		status, message := ResolveError(err)
 		http.Error(w, message, status)

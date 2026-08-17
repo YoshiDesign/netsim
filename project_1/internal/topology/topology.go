@@ -1,12 +1,14 @@
 package topology
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
 type Topology struct {
 	ID    string          `json:"id"`
 	Name  string          `json:"name"`
 	Nodes map[NodeID]Node `json:"nodes"`
-	Links map[string]Link `json:"links"`
+	Links map[LinkID]Link `json:"links"`
 	// ^ Bear in mind the referential nature of maps (& slices).
 	// This is why we provide an explicit Clone() operation.
 	// Do not return a Topology (or anything containing maps or slices)
@@ -20,13 +22,15 @@ type TopologyStore interface {
 	GetTopology(id string) (Topology, error)
 	DeleteTopology(id string) bool
 	UpdateTopology(id string, fn func(topo *Topology) error) error
+	AddInterface(topologyID string, nodeID NodeID, iface Interface) error
 }
 
 // TopologyServices defines the Service pattern
 type TopologyService struct {
-	store       TopologyStore
-	nextNodeNum atomic.Uint64
-	nextLinkNum atomic.Uint64
+	store        TopologyStore
+	nextNodeNum  atomic.Uint64
+	nextLinkNum  atomic.Uint64
+	nextIfaceNum atomic.Uint64
 }
 
 func (t Topology) Clone() Topology {
@@ -34,7 +38,7 @@ func (t Topology) Clone() Topology {
 		ID:    t.ID,
 		Name:  t.Name,
 		Nodes: make(map[NodeID]Node, len(t.Nodes)),
-		Links: make(map[string]Link, len(t.Links)),
+		Links: make(map[LinkID]Link, len(t.Links)),
 	}
 
 	for id, node := range t.Nodes {
