@@ -59,7 +59,7 @@ func makeServer(ts *topology.TopologyService) http.Server {
 	mux.HandleFunc("DELETE /api/v1/topologies/{topoId}/links/{linkId}", apiHandler.DeleteLink)
 
 	mux.HandleFunc("POST /api/v1/topologies/{topoId}/nodes/{nodeId}/interfaces", apiHandler.CreateInterface)
-	mux.HandleFunc("PUT /api/v1/topologies/{topoId}/nodes/{nodeId}/interfaces/{interfaceId}/address", apiHandler.UpdateInterface)
+	mux.HandleFunc("PUT /api/v1/topologies/{topoId}/nodes/{nodeId}/interfaces/{interfaceId}/address", apiHandler.SetInterfaceAddress)
 
 	return http.Server{
 		Addr:    ":8080",

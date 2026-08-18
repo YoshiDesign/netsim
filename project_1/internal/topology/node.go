@@ -16,7 +16,7 @@ func (s NodeID) TrimSpace() NodeID {
 	return NodeID(strings.TrimSpace(string(s)))
 }
 
-// TODO func (s NodeName) Valid() NodeName etc.
+// TODO func (s NodeName) Valid(), ValidateRoutes()...
 
 const (
 	NodeTypeRouter NodeType = "router"
@@ -25,10 +25,11 @@ const (
 )
 
 type Node struct {
-	ID         NodeID      `json:"id"`
-	Name       NodeName    `json:"name"`
-	Type       NodeType    `json:"type"`
-	Interfaces []Interface `json:"interfaces"`
+	ID           NodeID      `json:"id"`
+	Name         NodeName    `json:"name"`
+	Type         NodeType    `json:"type"`
+	Interfaces   []Interface `json:"interfaces"`
+	StaticRoutes []StaticRoute
 }
 
 func (t NodeType) Valid() bool {

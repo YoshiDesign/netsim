@@ -44,7 +44,12 @@ var (
 	ErrInterfaceNotFound      = errors.New("interface not found")            // 404
 
 	// IP
-	ErrInvalidIPv4Prefix = errors.New("invalid ipv4 address prefix")
+	ErrInvalidIPv4Prefix        = errors.New("invalid ipv4 address prefix")
+	ErrInvalidRouteDestination  = errors.New("invalid route destination address")
+	ErrInvalidNextHop           = errors.New("invalid next hop address")
+	ErrInterfaceAddressRequired = errors.New("interface address is required")
+	ErrNextHopNotReachable      = errors.New("unreachable next-hop address")
+	ErrDuplicateRoute           = errors.New("duplicate route assignment")
 )
 
 /* */
@@ -434,7 +439,7 @@ func (s *TopologyService) CreateInterface(
 }
 
 /* * * * * * *
-* TODO - Many of these functions might belong in a separate NetworkingService
+* TODO - Many of the below methods might belong in a separate NetworkingService
 * which utilizes the same underlying store
  */
 /**/
@@ -486,5 +491,93 @@ func (s *TopologyService) SetInterfaceAddress(
 	})
 
 	return updated, nil
+
+}
+
+/* * * * *
+* Routing
+ */
+func (s *TopologyService) AddStaticRoute(
+	topologyID string,
+	nodeID NodeID,
+	destination string,
+	nextHop string,
+	interfaceID InterfaceID,
+) error {
+
+	// Validate + convert
+	prefix, err := netip.ParsePrefix(destination)
+	if err != nil {
+		return ErrInvalidRouteDestination
+	}
+
+	// Gateway is computed via ParseAddr so that we're:
+	// 1. validating that the supplied next hop is a legitimate IP address;
+	// 2. converting it into the type needed by routing logic.
+	// So ultimately you'd store gateway, not nextHop
+	gateway, err := netip.ParseAddr(nextHop)
+	if err != nil {
+		return ErrInvalidNextHop
+	}
+	prefix = prefix.Masked()
+
+	return s.store.UpdateTopology(topologyID, func(topo *Topology) error {
+		// find node
+		node, ok := topo.Nodes[nodeID]
+		if !ok {
+			return ErrNodeNotFound
+		}
+
+		var iface *Interface
+
+		// find interface
+		for idx := range node.Interfaces {
+			if interfaceID != node.Interfaces[idx].ID {
+				continue
+			}
+
+			iface = &node.Interfaces[idx]
+			break
+
+		}
+
+		if iface == nil {
+			return ErrInterfaceNotFound
+		}
+
+		/**
+		* Validation
+		 */
+		// Valid address has already been assigned to the interface
+		if !iface.Address.IsValid() {
+			return ErrInterfaceAddressRequired
+		}
+
+		// The (next hop) address is directly connected to the gateway
+		if !iface.Address.Contains(gateway) {
+			return ErrNextHopNotReachable
+		}
+
+		// Look for duplicate routes.
+		// This simlpified simulator doesn't allow two configured (static)
+		// routes for the exact same destination prefix.
+		// I.e. : 10.0.2.55/24 and 10.0.2.93/24 will collide
+		for _, route := range node.StaticRoutes {
+			if route.Destination == prefix {
+				return ErrDuplicateRoute
+			}
+		}
+
+		// Append the static route
+		node.StaticRoutes = append(node.StaticRoutes, StaticRoute{
+			Destination: prefix,
+			NextHop:     gateway,
+			InterfaceID: interfaceID,
+		})
+
+		topo.Nodes[nodeID] = node
+
+		return nil
+	})
 
 }
